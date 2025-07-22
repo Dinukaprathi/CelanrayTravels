@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PackageWithoutOffers {
+  id          String           @id @default(uuid())
+  title       String
+  description String
+  image       String
+  price       String
+  duration    String
+  category    String
+  interests   String[]
+  inclusions  String[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  bookings    PackageBooking[]
+  allPackages AllPackages[] @relation("NoOfferToAllPackages")
+}
+
+model PackageBooking {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  name      String
+  email     String
+  phone     String
+  message   String?
+  packageId String
+  package   PackageWithoutOffers  @relation(fields: [packageId], references: [id])
+
+  // Add these lines for the new relation
+  packageWithOffersId String?
+  packageWithOffers   PackageWithOffers? @relation("PackageWithOffersToBooking", fields: [packageWithOffersId], references: [id])
+}
+
+model Destination {
+  id               String   @id @default(uuid())
+  destination_id   String   @unique
+  destination      String
+  destination_name String
+  description      String
+  image_url        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model HotelBooking {
+  id              String   @id @default(uuid())
+  createdAt       DateTime @default(now())
+  name            String
+  email           String
+  phone           String
+  hotel_name      String
+  checkIn         DateTime
+  checkOut        DateTime
+  roomType        String
+  numGuests       String
+  specialRequests String?
+}
+
+model Hotel {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  location  String?
+  image     String?
+  roomType  String?
+  starRating String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rooms     Room[]   // Relation: one hotel has many rooms
+}
+
+model Room {
+  id        String   @id @default(uuid())
+  name      String
+  type      String?
+  price     Float?
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  hotelId   String   // Foreign key
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Admin {
+  id        String   @id
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model PackageWithOffers {
+  id               String   @id @default(uuid())
+  title            String
+  description      String?
+  priceWithOffer   String
+  priceWithoutOffer String
+  startDate        DateTime
+  endDate          DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  duration         String
+  imageURL         String
+  category         String
+  interests        String
+  inclutions       String
+  bookings         PackageBooking[] @relation("PackageWithOffersToBooking")
+  allPackages      AllPackages[] @relation("OfferToAllPackages")
+}
+
+model AllPackages {
+  id                   String   @id @default(uuid())
+  title                String
+  description          String?
+  type                 String   // "offer" or "no-offer"
+  packageWithOffersId  String?  // nullable, if this is an offer package
+  packageWithoutOffersId String? // nullable, if this is a non-offer package
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  packageWithOffers    PackageWithOffers?   @relation("OfferToAllPackages", fields: [packageWithOffersId], references: [id])
+  packageWithoutOffers PackageWithoutOffers? @relation("NoOfferToAllPackages", fields: [packageWithoutOffersId], references: [id])
+}
