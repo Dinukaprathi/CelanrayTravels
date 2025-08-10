@@ -1,20 +1,28 @@
 import { notFound } from 'next/navigation';
 // import Header from '@/components/Header/Header';
 // import { Footer } from '@/components/common/Footer';
-import { Package, Offer } from '@/components/pages/packages/packages';
+import type { TravelPackage, Offer } from '@/components/pages/packages/PackageCard';
 import React from 'react';
 import { headers } from 'next/headers';
 import BookingForm from '@/components/pages/packages/BookingForm';
 
 // Placeholder for fetching package data by id
-async function getPackageById(id: string): Promise<Package | null> {
+async function getPackageById(id: string): Promise<TravelPackage | null> {
   const headersList = await headers();
   const host = headersList.get('host');
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}`;
   const res = await fetch(`${baseUrl}/api/packages`);
   const data = await res.json();
-  return data.find((pkg: Package) => pkg.id === id) || null;
+  
+  // Combine packages from both arrays
+  const allPackages = [
+    ...data.packagesWithoutOffers,
+    ...data.packagesWithOffers
+  ];
+  
+  // Find the package by id
+  return allPackages.find((pkg: TravelPackage) => pkg.id === id) || null;
 }
 
 export default async function PackageDetailPage({ params }: { params: { id: string } }) {
@@ -25,8 +33,29 @@ export default async function PackageDetailPage({ params }: { params: { id: stri
   // Find the latest valid offer (if any)
   const now = new Date();
   const validOffer = pkg.offers && pkg.offers.find(
-    (offer: Offer) => new Date(offer.startDate) <= now && new Date(offer.endDate) >= now
+    (offer: any) =>
+      offer.startDate && new Date(offer.startDate) <= now &&
+      offer.endDate && new Date(offer.endDate) >= now
   );
+
+  // Ensure inclusions is always a string array
+  const inclusions: string[] =
+    Array.isArray(pkg.inclusions)
+      ? pkg.inclusions
+      : typeof pkg.inclusions === 'string'
+      ? (pkg.inclusions as string).split(',').map((i: string) => i.trim())
+      : typeof pkg.inclusions === 'undefined' || pkg.inclusions === null
+      ? []
+      : [];
+  // Ensure interests is always a string array
+  const interests: string[] =
+    Array.isArray(pkg.interests)
+      ? pkg.interests
+      : typeof pkg.interests === 'string'
+      ? (pkg.interests as string).split(',').map((i: string) => i.trim())
+      : typeof pkg.interests === 'undefined' || pkg.interests === null
+      ? []
+      : [];
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#f6f4fa] to-[#eae6f7]">
@@ -36,13 +65,13 @@ export default async function PackageDetailPage({ params }: { params: { id: stri
           <div className="md:w-8/12 w-full flex flex-col justify-start">
             {/* Top: Main Image */}
             <div className="w-full relative group overflow-hidden">
-              <img src={pkg.image} alt={pkg.title} className="w-full h-96 object-cover transition-transform duration-500 group-hover:scale-105" />
+              <img src={pkg.imageUrl} alt={pkg.name} className="w-full h-96 object-cover transition-transform duration-500 group-hover:scale-105" />
               <div className="absolute top-4 left-4 bg-[#b8a6e8]/80 text-[#463f5e] px-4 py-2 rounded-xl shadow-lg text-lg font-bold backdrop-blur-md">
                 {pkg.category}
               </div>
             </div>
             {/* Title */}
-            <h1 className="text-3xl md:text-4xl font-extrabold text-[#463f5e] mt-6 mb-2 px-6 drop-shadow-lg transition-all duration-500">{pkg.title}</h1>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-[#463f5e] mt-6 mb-2 px-6 drop-shadow-lg transition-all duration-500">{pkg.name}</h1>
             {/* Description */}
             <div className="px-6 mb-4">
               <p className="text-[#7c6fa7] text-lg leading-relaxed bg-[#f6f4fa]/80 rounded-xl p-4 shadow-sm border border-[#eae6f7]">
@@ -56,32 +85,36 @@ export default async function PackageDetailPage({ params }: { params: { id: stri
               </span>
               {validOffer ? (
                 <span className="inline-block">
-                  <span className="text-gray-400 line-through mr-2 font-semibold">${validOffer.priceWithoutOffer}</span>
-                  <span className="bg-[#C46DD6]/10 text-[#C46DD6] px-4 py-1 rounded-lg font-bold text-lg shadow">${validOffer.priceWithOffer}</span>
+                  <span className="text-gray-400 line-through mr-2 font-semibold">
+                    ${validOffer.priceWithoutOffer?.replace(/^\$/, '')}
+                  </span>
+                  <span className="bg-[#C46DD6]/10 text-[#C46DD6] px-4 py-1 rounded-lg font-bold text-lg shadow">
+                    ${validOffer.priceWithOffer?.replace(/^\$/, '')}
+                  </span>
                 </span>
               ) : (
               <span className="inline-block bg-[#C46DD6]/10 text-[#C46DD6] px-4 py-1 rounded-lg font-bold text-lg shadow">
-                {pkg.price}
+                ${typeof pkg.price === 'string' ? pkg.price.replace(/^\$/, '') : pkg.price}
               </span>
               )}
             </div>
             {/* Interests */}
             <div className="flex flex-wrap gap-3 items-center mb-4 px-6">
               <div className="flex gap-2 flex-wrap">
-                {pkg.interests.map((interest) => (
-                  <span key={interest} className="bg-[#463f5e]/80 text-white px-3 py-1 rounded-full text-xs font-semibold shadow">
-                    {interest}
-                  </span>
-                ))}
+               {interests.map((interest: string) => (
+                 <span key={interest} className="bg-[#463f5e]/80 text-white px-3 py-1 rounded-full text-xs font-semibold shadow">
+                   {interest}
+                 </span>
+               ))}
               </div>
             </div>
             {/* Inclusions */}
             <div className="mb-6 px-6">
               <h2 className="text-xl font-bold text-[#463f5e] mb-2">Inclusions</h2>
               <ul className="list-disc list-inside text-[#7c6fa7] space-y-1">
-                {pkg.inclusions.map((inc, idx) => (
-                  <li key={idx}>{inc}</li>
-                ))}
+               {inclusions.map((inc: string, idx: number) => (
+                 <li key={idx}>{inc}</li>
+               ))}
               </ul>
             </div>
           </div>

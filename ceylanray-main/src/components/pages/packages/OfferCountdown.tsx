@@ -14,16 +14,24 @@ function getTimeLeft(endDate: Date) {
 
 export default function OfferCountdown({ endDate }: { endDate: string | Date }) {
   const end = typeof endDate === "string" ? new Date(endDate) : endDate;
-  const [timeLeft, setTimeLeft] = useState(getTimeLeft(end));
+  const [timeLeft, setTimeLeft] = useState<ReturnType<typeof getTimeLeft> | null>(null);
 
   useEffect(() => {
+    setTimeLeft(getTimeLeft(end)); // Set initial value on client
     const timer = setInterval(() => {
       setTimeLeft(getTimeLeft(end));
     }, 1000);
     return () => clearInterval(timer);
   }, [endDate]);
 
-  if (!timeLeft) return <span className="text-xs text-red-500 font-semibold">Offer expired</span>;
+  if (timeLeft === null) {
+    // Render a placeholder or nothing until client-side calculation
+    return <span className="text-xs text-blue-700 font-semibold">...</span>;
+  }
+
+  if (!timeLeft) {
+    return <span className="text-xs text-red-500 font-semibold">Offer expired</span>;
+  }
 
   return (
     <span className="text-xs text-blue-700 font-semibold">

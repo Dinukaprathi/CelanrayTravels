@@ -2,10 +2,29 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 
+async function getDestination(id: string) {
+  try {
+    // Fetch destination from our local API route
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/destinations/${id}`, {
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const destination = await response.json();
+    console.log('Destination fetched from database:', destination); // Debug log
+    return destination;
+  } catch (error) {
+    console.error('Error fetching destination:', error);
+    return null;
+  }
+}
+
 export default async function DestinationDetailPage({ params }: { params: { id: string } }) {
   const { id } = await params;
-  // Use a mock or null value
-  const destination = null;
+  const destination = await getDestination(id);
 
   if (!destination) {
     return (

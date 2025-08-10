@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  // output   = "../generated/prisma"
 }
 
 datasource db {
@@ -26,23 +19,22 @@ model PackageWithoutOffers {
   inclusions  String[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  allPackages AllPackages[]    @relation("NoOfferToAllPackages")
   bookings    PackageBooking[]
-  allPackages AllPackages[] @relation("NoOfferToAllPackages")
 }
 
 model PackageBooking {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  name      String
-  email     String
-  phone     String
-  message   String?
-  packageId String
-  package   PackageWithoutOffers  @relation(fields: [packageId], references: [id])
-
-  // Add these lines for the new relation
+  id                  String                @id @default(uuid())
+  createdAt           DateTime              @default(now())
+  name                String
+  email               String
+  phone               String
+  message             String?
+  packageId           String?
   packageWithOffersId String?
-  packageWithOffers   PackageWithOffers? @relation("PackageWithOffersToBooking", fields: [packageWithOffersId], references: [id])
+  isCompleted         Boolean               @default(false)
+  package             PackageWithoutOffers? @relation(fields: [packageId], references: [id])
+  packageWithOffers   PackageWithOffers?    @relation("PackageWithOffersToBooking", fields: [packageWithOffersId], references: [id])
 }
 
 model Destination {
@@ -68,18 +60,20 @@ model HotelBooking {
   roomType        String
   numGuests       String
   specialRequests String?
+  isCompleted     Boolean  @default(false)
 }
 
 model Hotel {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  location  String?
-  image     String?
-  roomType  String?
+  id         String   @id @default(uuid())
+  name       String   @unique
+  location   String?
+  image      String?
+  roomType   String?
   starRating String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  rooms     Room[]   // Relation: one hotel has many rooms
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  roomTypes  String[]
+  rooms      Room[]
 }
 
 model Room {
@@ -87,10 +81,10 @@ model Room {
   name      String
   type      String?
   price     Float?
-  hotel     Hotel    @relation(fields: [hotelId], references: [id])
-  hotelId   String   // Foreign key
+  hotelId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
 }
 
 model Admin {
@@ -103,34 +97,64 @@ model Admin {
 }
 
 model PackageWithOffers {
-  id               String   @id @default(uuid())
-  title            String
-  description      String?
-  priceWithOffer   String
+  id                String           @id @default(uuid())
+  title             String
+  description       String?
+  priceWithOffer    String
   priceWithoutOffer String
-  startDate        DateTime
-  endDate          DateTime
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  duration         String
-  imageURL         String
-  category         String
-  interests        String
-  inclutions       String
-  bookings         PackageBooking[] @relation("PackageWithOffersToBooking")
-  allPackages      AllPackages[] @relation("OfferToAllPackages")
+  startDate         DateTime
+  endDate           DateTime
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  duration          String
+  imageURL          String
+  category          String
+  interests         String
+  inclutions        String
+  allPackages       AllPackages[]    @relation("OfferToAllPackages")
+  bookings          PackageBooking[] @relation("PackageWithOffersToBooking")
 }
 
 model AllPackages {
-  id                   String   @id @default(uuid())
-  title                String
-  description          String?
-  type                 String   // "offer" or "no-offer"
-  packageWithOffersId  String?  // nullable, if this is an offer package
-  packageWithoutOffersId String? // nullable, if this is a non-offer package
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                     String                @id @default(uuid())
+  title                  String
+  description            String?
+  type                   String
+  packageWithOffersId    String?
+  packageWithoutOffersId String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  packageWithOffers      PackageWithOffers?    @relation("OfferToAllPackages", fields: [packageWithOffersId], references: [id])
+  packageWithoutOffers   PackageWithoutOffers? @relation("NoOfferToAllPackages", fields: [packageWithoutOffersId], references: [id])
+}
 
-  packageWithOffers    PackageWithOffers?   @relation("OfferToAllPackages", fields: [packageWithOffersId], references: [id])
-  packageWithoutOffers PackageWithoutOffers? @relation("NoOfferToAllPackages", fields: [packageWithoutOffersId], references: [id])
+model AirTicketBooking {
+  id                String      @id @default(uuid())
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  bookingMode       String
+  tripType          String
+  flightClass       String
+  departureCity     String
+  arrivalCity       String
+  departureDate     DateTime
+  returnDate        DateTime?
+  adults            Int         @default(1)
+  children          Int         @default(0)
+  totalPassengers   Int
+  specialAssistance String?
+  mealPreference    String?
+  isCompleted       Boolean     @default(false)
+  passengers        Passenger[]
+}
+
+model Passenger {
+  id                 String           @id @default(uuid())
+  createdAt          DateTime         @default(now())
+  fullName           String
+  email              String
+  phone              String
+  passport           String
+  airTicketBookingId String
+  airTicketBooking   AirTicketBooking @relation(fields: [airTicketBookingId], references: [id], onDelete: Cascade)
 }

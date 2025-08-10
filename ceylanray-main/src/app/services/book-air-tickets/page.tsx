@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { LoadingButton } from '@/components/ui/loading-button';
 
 interface Passenger {
   fullName: string;
@@ -52,15 +53,56 @@ const AirTicketBookingForm: React.FC = () => {
     // eslint-disable-next-line
   }, [bookingMode, adults, children]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
-    // Here you would send the data to your backend
+    
+    try {
+      const bookingData = {
+        bookingMode,
+        tripType,
+        flightClass,
+        departureCity,
+        arrivalCity,
+        departureDate,
+        returnDate: returnDate || null,
+        adults,
+        children,
+        totalPassengers,
+        specialAssistance: assistance || null,
+        mealPreference: meal || null,
+        passengers
+      };
+
+      const response = await fetch('/api/air-ticket-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Success - form will show success message
+        console.log('Booking submitted successfully:', result);
+      } else {
+        // Error handling
+        console.error('Booking submission failed:', result.error);
+        setSubmitted(false);
+        alert('Failed to submit booking. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting booking:', error);
+      setSubmitted(false);
+      alert('Failed to submit booking. Please try again.');
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-8 bg-white/90 shadow-2xl rounded-2xl space-y-8 mt-10 mb-20 border border-[#eae6f7]">
-      <h2 className="text-3xl font-bold text-[#463f5e] mb-2 text-center drop-shadow">✈️ Air Ticket Booking</h2>
+      <h2 className="text-3xl font-bold text-[#463f5e] mb-2 text-center drop-shadow"> Air Ticket Booking</h2>
       <p className="text-center text-gray-500 mb-6">Book your next flight with Celanray Travels & Tours</p>
 
       <div className="flex flex-col md:flex-row gap-6 justify-between">
@@ -213,9 +255,14 @@ const AirTicketBookingForm: React.FC = () => {
         <input type="text" placeholder="Meal Preference (optional)" value={meal} onChange={(e) => setMeal(e.target.value)} className="w-full px-3 py-2 border rounded bg-white/80" />
       </div>
 
-      <button type="submit" className="w-full bg-[#463f5e] hover:bg-[#463f5ecc] text-white font-bold text-xl rounded-xl transition-all shadow-lg h-14 mt-6 disabled:opacity-60">
-        {submitted ? "Booking Submitted!" : "Submit Booking"}
-      </button>
+      <LoadingButton 
+        type="submit" 
+        loading={submitted} 
+        loadingText="Booking Submitted!" 
+        className="w-full bg-[#463f5e] hover:bg-[#463f5ecc] text-white font-bold text-xl rounded-xl transition-all shadow-lg h-14 mt-6"
+      >
+        Submit Booking
+      </LoadingButton>
       {submitted && <div className="text-green-600 text-center bg-green-50 p-2 rounded-lg mt-4">Thank you! Your booking has been submitted.</div>}
     </form>
   );
@@ -228,9 +275,9 @@ export default function AirTicketBookingPage() {
       <svg className="hidden md:block absolute top-0 left-0 w-48 h-48 opacity-20 pointer-events-none z-0" viewBox="0 0 64 64" fill="none"><path d="M2 62L62 2M62 2L44 22M62 2L22 44" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round"/></svg>
       <svg className="hidden md:block absolute bottom-0 right-0 w-64 h-64 opacity-10 pointer-events-none z-0" viewBox="0 0 64 64" fill="none"><path d="M2 62L62 2M62 2L44 22M62 2L22 44" stroke="#6366F1" strokeWidth="5" strokeLinecap="round"/></svg>
       {/* Banner Image with Overlay Text */}
-      <div className="relative w-full h-[420px] md:h-[600px] lg:h-[720px] overflow-hidden z-10">
+      <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] overflow-hidden z-0">
         <Image
-          src="https://images.pexels.com/photos/33041380/pexels-photo-33041380.jpeg"
+          src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200&h=800&fit=crop"
           alt="Air Ticket Booking Banner"
           fill
           style={{ objectFit: 'cover' }}
@@ -238,11 +285,11 @@ export default function AirTicketBookingPage() {
         />
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center px-4">
           <div className="text-white text-center max-w-3xl mx-auto">
-            <p className="font-serif italic text-3xl md:text-5xl lg:text-6xl text-white drop-shadow-lg mb-6">Book your ticket with Celanray</p>
+            <p className="font-serif italic text-2xl md:text-4xl lg:text-5xl text-white drop-shadow-lg mb-4">Book your ticket with Celanray</p>
             <div className="space-y-1">
-              <p className="text-base md:text-lg lg:text-xl font-medium drop-shadow-lg mb-0">Book one-way or round-trip flights for single or multiple passengers with ease.</p>
-              <p className="text-base md:text-lg lg:text-xl font-medium drop-shadow-lg mb-0">Choose your preferred flight class, manage passenger details, and add special requests hassle-free.</p>
-              <p className="text-base md:text-lg lg:text-xl font-medium drop-shadow-lg">Experience a smarter way to fly – your journey begins smoothly with Celanray.</p>
+              <p className="text-sm md:text-base lg:text-lg font-medium drop-shadow-lg mb-0">Book one-way or round-trip flights for single or multiple passengers with ease.</p>
+              <p className="text-sm md:text-base lg:text-lg font-medium drop-shadow-lg mb-0">Choose your preferred flight class, manage passenger details, and add special requests hassle-free.</p>
+              <p className="text-sm md:text-base lg:text-lg font-medium drop-shadow-lg">Experience a smarter way to fly – your journey begins smoothly with Celanray.</p>
             </div>
           </div>
         </div>

@@ -1,21 +1,8 @@
 import type { Metadata } from "next";
-import {  Inter_Tight, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import Header from '../components/Header/Header'
 import "../styles/theme.css";
 import { Footer } from "@/components/common/Footer";
-
-const interTight = Inter_Tight({
-  subsets: ["latin"],
-  display: 'swap',
-  variable: '--font-inter-tight',
-});
-
-const instrumentSans = Instrument_Sans({
-  subsets: ["latin"],
-  display: 'swap',
-  variable: '--font-instrument-sans',
-});
 
 export const metadata: Metadata = {
   title: {
@@ -32,7 +19,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://ceylanray.com'), // Replace with your actual domain
+  metadataBase: new URL('https://ceylanray.com'),
   openGraph: {
     title: "Ceylanray - Your Sri Lankan Travel Experience",
     description: "Discover Sri Lanka with Ceylanray - Your complete travel companion for flights, hotels, and curated holiday packages.",
@@ -40,7 +27,7 @@ export const metadata: Metadata = {
     siteName: 'Ceylanray',
     images: [
       {
-        url: '/og-image.jpg', // Add your OG image
+        url: '/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'Ceylanray Sri Lankan Travel Experiences',
@@ -53,7 +40,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "Ceylanray - Your Sri Lankan Travel Experience",
     description: "Discover Sri Lanka with Ceylanray - Your complete travel companion for flights, hotels, and curated holiday packages.",
-    images: ['/twitter-image.jpg'], // Add your Twitter card image
+    images: ['/twitter-image.jpg'],
     creator: '@ceylanray',
   },
   robots: {
@@ -68,9 +55,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'your-google-site-verification', // Add your Google verification code
-    // yandex: 'your-yandex-verification',
-    // bing: 'your-bing-verification',
+    google: 'your-google-site-verification',
   },
 };
 
@@ -79,8 +64,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Determine if the current page has a CTA
-  const hasCta = true; // You might want to make this dynamic based on the route
+  const hasCta = true;
 
   return (
     <html lang="en">
@@ -90,9 +74,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#ffffff" />
       </head>
-      <body
-        className={`${interTight.variable} ${instrumentSans.variable} p antialiased`}
-      >
+      <body className="font-sans antialiased">
         <Header />
         {children}
         <Footer hasCta={hasCta} />

@@ -1,9 +1,10 @@
 "use client";
 import React, { useState, useTransition } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
-import { Package } from './packages';
+import type { TravelPackage } from '@/types/travelPackages';
+import { LoadingButton } from '@/components/ui/loading-button';
 
-export default function BookingForm({ pkg }: { pkg: Package }) {
+export default function BookingForm({ pkg }: { pkg: TravelPackage }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -42,6 +43,8 @@ export default function BookingForm({ pkg }: { pkg: Package }) {
     });
   };
 
+  const packageTitle = pkg.title || pkg.name || 'Package';
+
   return (
     <>
       {showAlert && (
@@ -72,14 +75,26 @@ export default function BookingForm({ pkg }: { pkg: Package }) {
           </div>
         </div>
       )}
+      
+      {/* Package Title */}
+      <div className="mb-6 text-center">
+        <h3 className="text-2xl font-bold text-[#463f5e] mb-2">{packageTitle}</h3>
+        <div className="w-16 h-1 bg-[#b8a6e8] mx-auto rounded-full"></div>
+      </div>
+      
       <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
         <input name="name" type="text" placeholder="Your Name" value={form.name} onChange={handleChange} className="rounded-lg border border-gray-200 px-4 py-2 text-lg text-gray-800 bg-white/90 focus:border-[#463f5e] transition-all duration-300" required />
         <input name="email" type="email" placeholder="Your Email" value={form.email} onChange={handleChange} className="rounded-lg border border-gray-200 px-4 py-2 text-lg text-gray-800 bg-white/90 focus:border-[#463f5e] transition-all duration-300" required />
         <input name="phone" type="tel" placeholder="Phone Number" value={form.phone} onChange={handleChange} className="rounded-lg border border-gray-200 px-4 py-2 text-lg text-gray-800 bg-white/90 focus:border-[#463f5e] transition-all duration-300" required />
         <textarea name="message" placeholder="Additional Requests" value={form.message} onChange={handleChange} className="rounded-lg border border-gray-200 px-4 py-2 text-lg text-gray-800 bg-white/90 focus:border-[#463f5e] transition-all duration-300" rows={3} />
-        <button type="submit" disabled={pending} className="mt-2 h-12 bg-[#463f5e] hover:bg-[#463f5ecc] text-white font-bold text-xl rounded-xl transition-all shadow-lg disabled:opacity-60">
-          {pending ? 'Booking...' : 'Book Now'}
-        </button>
+        <LoadingButton 
+          type="submit" 
+          loading={pending} 
+          loadingText="Booking..." 
+          className="mt-2 h-12 bg-[#463f5e] hover:bg-[#463f5ecc] text-white font-bold text-xl rounded-xl transition-all shadow-lg"
+        >
+          Book Now
+        </LoadingButton>
       </form>
     </>
   );

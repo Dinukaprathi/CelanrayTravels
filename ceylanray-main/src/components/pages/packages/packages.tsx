@@ -1,300 +1,343 @@
 "use client";
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from "@/components/ui/button";
-import Link from 'next/link';
-import OfferCountdown from './OfferCountdown';
+import React, { useState, useMemo, useEffect } from 'react';
+import PackageGrid from './PackageGrid';
+import PackageFilters from './PackageFilters';
+import { toast, Toaster } from 'react-hot-toast';
+import { PageLoading } from '@/components/ui/loading';
 
-export interface Offer {
-  id: string;
-  title: string;
-  description?: string;
-  packageId: string;
-  priceWithOffer: number;
-  priceWithoutOffer: number;
-  startDate: string;
-  endDate: string;
-  imageURL?: string; // Added for offers
-  duration?: string; // Added for offers
-  category?: string; // Added for offers
-  interests?: string; // Added for offers
-  inclutions?: string; // Added for offers
-}
+const teaPlantationImage = '/home/homeServices/packages.webp';
+const templeImage = '/home/homeAboutFirst/homeAboutFirst-1.webp';
+const beachImage = '/home/beach-homepage.jpg';
 
+// Define and export a basic Package type
 export interface Package {
   id: string;
-  title: string;
+  name?: string;
+  title?: string;
   description: string;
-  image: string;
   price: string;
-  duration: string;
+  imageUrl: string;
+  offers?: Array<{
+    startDate: string;
+    endDate: string;
+    priceWithoutOffer: string;
+    priceWithOffer: string;
+  }>;
   category: string;
   interests: string[];
-  inclusions: string[];
-  offers?: Offer[];
-}
-
-const filterOptions = {
-  demand: ['Beaches', 'Cultural Sites', 'Wildlife', 'Hill Country'],
-  season: ['Kandy Esala Perahera', 'Whale Watching'],
-  duration: ['3 Days', '5 Days', '7 Days', '14 Days'],
-  category: ['Luxury', 'Mid-range', 'Budget'],
-  interests: ['Adventure', 'Ayurveda', 'Honeymoon', 'Heritage', 'Culture', 'Wildlife'],
-};
-
-type PackagesProps = {
-  packages: Package[];
-};
-
-interface ClassicSafariPackageProps {
-  title: string;
-  subtitle: string;
   duration: string;
-  category: string;
-  type: string;
-  features: string[];
-  price: string;
-  location: string;
-  image: string;
-  id: string;
-  offers?: Offer[];
-  inclutions?: string; // For offers
-  interests?: string; // For offers
+  location?: string;
+  maxGroup?: number;
+  rating?: number;
+  inclusions: string[];
+  type: 'with-offer' | 'without-offer';
+  inclutions?: string[];
 }
 
-export const ClassicSafariPackage = ({
-  title,
-  subtitle,
-  duration = "3 Days",
-  category = "Premium",
-  type = "Adventure",
-  features = [],
-  price,
-  location,
-  image,
-  id,
-  offers = [],
-  inclutions = '',
-  interests = '',
-}: ClassicSafariPackageProps) => {
-  // Helper to check if description is longer than 5 lines (approx 300 chars as a fallback)
-  const isLong = subtitle && subtitle.length > 300;
-  // Find the latest valid offer (if any)
-  const now = new Date();
-  const validOffer: Offer | undefined = offers.find(
-    (offer) => new Date(offer.startDate) <= now && new Date(offer.endDate) >= now
-  );
-  // Helper to format price with a single $ sign
-  const formatPrice = (price: string) => price && price.startsWith('$') ? price : `$${price}`;
+interface PackagesProps {
+  packages?: Package[];
+}
 
-  // Always use a fallback image if none is provided
-  const bgImage = validOffer
-    ? validOffer.imageURL || image || '/fallback.jpg'
-    : image || '/fallback.jpg';
+// Mock data for demonstration (fallback)
+const mockPackages: Package[] = [
+  {
+    id: '1',
+    name: 'Golden Triangle Cultural Tour',
+    description: 'Explore the ancient kingdoms of Kandy, Anuradhapura, and Polonnaruwa. Discover centuries-old temples, royal palaces, and sacred relics.',
+    price: '$899',
+    imageUrl: templeImage,
+    category: 'Cultural',
+    duration: '7 days',
+    location: 'Central & North Central Province',
+    maxGroup: 12,
+    rating: 4.8,
+    interests: ['History', 'Culture', 'Photography', 'Architecture'],
+    inclusions: [
+      'Accommodation in 4-star hotels',
+      'All meals included',
+      'Professional tour guide',
+      'Transportation',
+      'Entrance fees to attractions'
+    ],
+    type: 'without-offer'
+  },
+  {
+    id: '2',
+    name: 'Ceylon Tea Trail Experience',
+    description: 'Journey through the misty hill country, visit working tea plantations, and stay in converted tea estate bungalows.',
+    price: '$1299',
+    imageUrl: teaPlantationImage,
+    category: 'Adventure',
+    duration: '5 days',
+    location: 'Nuwara Eliya & Ella',
+    maxGroup: 8,
+    rating: 4.9,
+    interests: ['Nature', 'Tea Culture', 'Hiking', 'Scenic Views'],
+    inclusions: [
+      'Tea estate bungalow accommodation',
+      'Tea tasting sessions',
+      'Guided plantation walks',
+      'Train ride to Ella',
+      'All meals and transfers'
+    ],
+    offers: [
+      {
+        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        priceWithoutOffer: '$1299',
+        priceWithOffer: '$999',
+      }
+    ],
+    type: 'with-offer'
+  },
+  {
+    id: '3',
+    name: 'Pristine Beach Paradise',
+    description: 'Relax on untouched beaches, enjoy water sports, and explore coastal villages along Sri Lanka\'s stunning coastline.',
+    price: '$699',
+    imageUrl: beachImage,
+    category: 'Beach',
+    duration: '4 days',
+    location: 'South Coast',
+    maxGroup: 15,
+    rating: 4.7,
+    interests: ['Beach', 'Water Sports', 'Relaxation', 'Seafood'],
+    inclusions: [
+      'Beachfront resort accommodation',
+      'Water sports equipment',
+      'Sunset boat cruise',
+      'Seafood dinner',
+      'Airport transfers'
+    ],
+    offers: [
+      {
+        startDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        priceWithoutOffer: '$699',
+        priceWithOffer: '$549',
+      }
+    ],
+    type: 'with-offer'
+  },
+  {
+    id: '4',
+    name: 'Wildlife Safari Adventure',
+    description: 'Experience the thrill of spotting leopards, elephants, and exotic birds in their natural habitat at Yala National Park.',
+    price: '$899',
+    imageUrl: '/home/recommended/yala.webp',
+    category: 'Wildlife',
+    duration: '3 days',
+    location: 'Yala National Park',
+    maxGroup: 6,
+    rating: 4.9,
+    interests: ['Wildlife', 'Photography', 'Nature', 'Adventure'],
+    inclusions: [
+      'Safari lodge accommodation',
+      'Professional safari guide',
+      'Multiple game drives',
+      'All meals included',
+      'Park entrance fees'
+    ],
+    type: 'without-offer'
+  }
+];
 
-  // --- UNIFIED CLASSIC CARD LAYOUT ---
-  return (
-    <div className="w-full max-w-sm mx-auto rounded-xl overflow-hidden shadow-classic transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 border border-classic-gold/20 relative min-h-[400px] flex items-stretch">
-      {/* Removed offer badge from top left */}
-      {/* Full background image */}
-      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${bgImage})` }} />
-      {/* Overlay for readability */}
-      <div className="absolute inset-0 bg-black/40" />
-      {/* Content overlay */}
-      <div className="relative z-10 w-full h-full flex flex-col justify-between p-4">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-2 drop-shadow-lg text-center tracking-tight leading-tight">{validOffer ? validOffer.title : title}</h2>
-          <p className="text-white text-base font-medium italic mb-4 text-center drop-shadow-lg opacity-90 line-clamp-5">{validOffer ? validOffer.description : subtitle}</p>
-          {isLong && !validOffer && (
-            <div className="flex justify-center mb-2">
-              <Link href={`/packages/${id}`} className="text-primary underline font-semibold text-xs">Read more</Link>
-            </div>
-          )}
-          <div className="flex flex-wrap justify-center gap-2 mb-4">
-            <span className="px-3 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full border border-blue-200">{validOffer ? validOffer.duration : duration}</span>
-            <span className="px-3 py-1 bg-purple-100 text-purple-600 text-xs font-medium rounded-full border border-purple-200">{validOffer ? validOffer.category : category}</span>
-            {(validOffer ? (validOffer.interests ? String(validOffer.interests).split(',') : []) : (type ? [type] : [])).map((tag, idx) => (
-              <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-500 text-xs font-medium rounded-full border border-gray-200">{tag.trim()}</span>
-            ))}
-          </div>
-        </div>
-        <div className="bg-white/80 rounded-xl p-6 shadow-lg mt-4">
-          {/* Inclusions label and offer badge row */}
-          <div className="flex items-center justify-between mb-1">
-            <h4 className="text-sm font-bold text-primary text-left tracking-wide">Inclusions:</h4>
-            {validOffer && (
-              <div className="flex flex-col items-end gap-0">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-7 w-7">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-60"></span>
-                    <span className="relative inline-flex rounded-full h-7 w-7 bg-blue-500 items-center justify-center text-white text-base font-bold shadow">%</span>
-                  </span>
-                  <span className="bg-blue-500 text-white px-3 py-1 rounded-lg font-bold text-xs shadow animate-bounce uppercase">Offer</span>
-                </div>
-                <span className="text-xs font-bold text-blue-500 mt-1 align-middle">Limited Time!</span>
-              </div>
-            )}
-          </div>
-          <ul className="space-y-1 mb-6">
-            {(validOffer ? (validOffer.inclutions ? String(validOffer.inclutions).split(',') : []) : features).map((feature, index) => (
-              <li key={index} className="text-gray-700 text-sm flex items-center font-crimson">
-                <span className="inline-block w-2 h-2 rounded-full bg-primary mr-3 flex-shrink-0"></span>
-                {feature}
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col items-start pt-2 border-t border-gray-200 gap-0">
-            <div className="text-left w-full">
-              <div className="text-xs text-gray-500 font-crimson uppercase tracking-wide mb-1">STARTING FROM</div>
-              {validOffer ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-lg text-gray-400 line-through">{formatPrice(String(validOffer.priceWithoutOffer))}</span>
-                  <span className="text-2xl font-extrabold text-blue-600 animate-pulse drop-shadow-lg">{formatPrice(String(validOffer.priceWithOffer))}</span>
-                </div>
-              ) : (
-                <div className="text-xl font-bold text-primary">{formatPrice(String(price))}</div>
-              )}
-            </div>
-            {/* Offer expiry timeline (only if offer) */}
-            {validOffer && (
-              <OfferCountdown endDate={validOffer.endDate} />
-            )}
-            <Link href={`/packages/${id}`} className="mt-1 w-full">
-              <Button variant="default" size="lg" className="font-playfair px-6 py-2 w-full text-sm">Reserve Now</Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+const Packages: React.FC<PackagesProps> = ({ packages: propPackages }) => {
+  const [packages, setPackages] = useState<Package[]>(mockPackages);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [priceRange, setPriceRange] = useState('all');
 
-const Packages: React.FC<PackagesProps> = ({ packages }) => {
-  const [filters, setFilters] = useState({
-    demand: '',
-    season: '',
-    duration: '',
-    category: '',
-    interests: '',
-  });
-  const [filteredPackages, setFilteredPackages] = useState<Package[]>(packages);
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-
+  // Fetch packages from API
   useEffect(() => {
-    setFilteredPackages(packages);
+    const fetchPackages = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/packages');
+        const data = await response.json();
+        
+        // Combine packages with and without offers
+        const allPackages = [
+          ...data.packagesWithoutOffers,
+          ...data.packagesWithOffers
+        ];
+        
+        console.log('Fetched packages:', allPackages);
+        setPackages(allPackages);
+      } catch (error) {
+        console.error('Error fetching packages:', error);
+        // Fallback to mock data
+        setPackages(mockPackages);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPackages();
+  }, []);
+
+  // Extract unique categories as objects with id and name
+  const categories = useMemo(() => {
+    const cats = packages.map(pkg => pkg.category);
+    const uniqueCats = Array.from(new Set(cats));
+    return uniqueCats.map(cat => ({ id: cat.toLowerCase().replace(/\s+/g, '-'), name: cat }));
   }, [packages]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+  // Filter packages based on search and filters
+  const filteredPackages = useMemo(() => {
+    return packages.filter(pkg => {
+      // Search filter
+      const matchesSearch = searchTerm === '' || 
+        pkg.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        pkg.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        pkg.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        pkg.interests.some((interest: string) => 
+          interest.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+      // Category filter
+      const matchesCategory = selectedCategory === 'all' || 
+        pkg.category === selectedCategory;
+
+      // Price filter
+      const matchesPrice = priceRange === 'all' || (() => {
+        const price = parseInt(pkg.price.replace(/[^0-9]/g, ''));
+        switch (priceRange) {
+          case '0-500':
+            return price <= 500;
+          case '500-1000':
+            return price > 500 && price <= 1000;
+          case '1000-2000':
+            return price > 1000 && price <= 2000;
+          case '2000+':
+            return price > 2000;
+          default:
+            return true;
+        }
+      })();
+
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
+  }, [packages, searchTerm, selectedCategory, priceRange]);
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm) count++;
+    if (selectedCategory !== 'all') count++;
+    if (priceRange !== 'all') count++;
+    return count;
+  }, [searchTerm, selectedCategory, priceRange]);
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('all');
+    setPriceRange('all');
   };
 
-  const handleFilter = () => {
-    let result = packages;
-    if (filters.demand) {
-      result = result.filter(pkg =>
-        filters.demand === 'Beaches' ? pkg.interests.includes('Beaches') :
-        filters.demand === 'Cultural Sites' ? pkg.interests.includes('Culture') || pkg.interests.includes('Heritage') :
-        filters.demand === 'Wildlife' ? pkg.interests.includes('Wildlife') :
-        filters.demand === 'Hill Country' ? pkg.title.toLowerCase().includes('hill') :
-        true
-      );
-    }
-    if (filters.season) {
-      result = result.filter(pkg =>
-        filters.season === 'Kandy Esala Perahera' ? pkg.description.includes('Kandy Esala Perahera') :
-        filters.season === 'Whale Watching' ? pkg.description.toLowerCase().includes('whale') :
-        true
-      );
-    }
-    if (filters.duration) {
-      result = result.filter(pkg => pkg.duration === filters.duration);
-    }
-    if (filters.category) {
-      result = result.filter(pkg => pkg.category === filters.category);
-    }
-    if (filters.interests) {
-      result = result.filter(pkg => pkg.interests.includes(filters.interests));
-    }
-    setFilteredPackages(result);
+  const handleBookNow = (pkg: Package) => {
+    toast(`Booking Initiated: Starting booking process for ${pkg.name || pkg.title}`);
+    // Navigate to booking page or open booking modal
   };
+
+  const handleViewDetails = (pkg: Package) => {
+    toast(`Package Details: Viewing details for ${pkg.name || pkg.title}`);
+    // Navigate to package detail page
+  };
+
+  // Correctly type the interest parameter
+  const handleInterest = (interest: string) => {
+    // Handle interest logic here
+  };
+
+  if (loading) {
+    return <PageLoading text="Loading packages..." />;
+  }
 
   return (
-    <section className="w-full max-w-[1560px] mx-auto px-0 pt-0 pb-10">
-      {/* Banner Image with Overlay Text */}
-      <div className="relative w-full h-[400px] md:h-[520px] rounded-none overflow-hidden mt-0 mb-10">
-        <img
-          src="https://cdn.pixabay.com/photo/2016/04/30/18/18/anuradhapura-1363496_1280.jpg"
-          alt="Travel Packages Banner"
-          className="w-full h-full object-cover rounded-none"
-        />
-        <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-center px-6">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 drop-shadow-lg">✨ Discover Our Travel Packages</h2>
-          <p className="text-white text-base md:text-lg max-w-2xl mx-auto drop-shadow">
-            At Celanray Travels and Tours, we offer a wide range of thoughtfully curated travel packages tailored to suit every traveler’s dream. Whether you're craving a relaxing beach escape, an adventurous trek, or a cultural heritage journey, our budget-friendly and customizable packages guarantee unforgettable experiences across Sri Lanka and the Middle East. Let us handle the planning while you focus on making memories that last a lifetime.
-          </p>
-        </div>
-      </div>
-      <h1 className="heading-1 text-center mb-8 text-black">Our Travel Packages</h1>
-      {/* Filter Bar (UI only) */}
-      <div className="flex flex-nowrap gap-3 justify-center mb-14 mt-6 overflow-x-auto scrollbar-hide items-end">
-        {Object.entries(filterOptions).filter(([key]) => key !== 'demand').map(([key, options]) => (
-          <div key={key} className="flex gap-1 items-center">
-            <span className="font-semibold text-sm text-gray-700 capitalize min-w-[60px]">{key}:</span>
-            <select
-              name={key}
-              value={filters[key as keyof typeof filters]}
-              onChange={handleChange}
-              className="border border-gray-200 rounded px-2 py-2 text-sm text-gray-700 bg-white focus:outline-primary min-w-[100px] h-9"
-            >
-              <option value="">All</option>
-              {options.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
+    <div className="min-h-screen bg-tourism-background">
+      <Toaster position="top-right" />
+      {/* Hero Section */}
+      <section className="relative py-20 text-white overflow-hidden" style={{
+        backgroundImage: `url('https://images.unsplash.com/photo-1509982724584-2ce0d4366d8b?q=80&w=1230&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}>
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center space-y-6 max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+              Discover the Magic of{' '}
+              <span className="text-tourism-secondary-light">Ceylon</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-white/90 leading-relaxed">
+              Embark on unforgettable journeys through Sri Lanka's ancient temples, 
+              lush tea plantations, and pristine beaches
+            </p>
+            <div className="flex justify-center">
+              <div className="w-32 h-1 bg-tourism-secondary-light rounded-full" />
+            </div>
           </div>
-        ))}
-        <button
-          onClick={handleFilter}
-          className="ml-2 px-4 py-2 rounded bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors duration-200 shadow h-9 min-w-[70px]"
-        >
-          Filter
-        </button>
-      </div>
-      {/* Packages Grid */}
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {loading ? (
-          <div className="col-span-full text-center text-gray-400 p-large">Loading...</div>
-        ) : filteredPackages.length === 0 ? (
-          <div className="col-span-full text-center text-gray-400 p-large">Packages Will be coming soon...</div>
-        ) : (
-          filteredPackages.map((pkg: Package) => {
-            // Safely handle price for display
-            const displayPrice = pkg.price ?? (pkg as any).priceWithOffer ?? '';
-            const priceStr = displayPrice.toString();
-            const formattedPrice = priceStr.startsWith('$') ? priceStr : `$${priceStr}`;
-            return (
-            <ClassicSafariPackage
-              key={pkg.id}
-              id={pkg.id}
-              title={pkg.title}
-              subtitle={pkg.description}
-              duration={pkg.duration}
-              category={pkg.category}
-              type={pkg.interests[0] || "Adventure"}
-              features={pkg.inclusions}
-                price={formattedPrice}
-              location={pkg.category}
-              image={pkg.image}
-                offers={pkg.offers ?? []}
-                inclutions={(pkg as any).inclutions ?? ''}
-                interests={(pkg as any).interests ?? ''}
-            />
-            );
-          })
-        )}
-      </div>
-    </section>
+        </div>
+        
+        {/* Floating Elements */}
+        <div className="absolute top-20 left-10 text-6xl opacity-20 animate-float">🏛️</div>
+        <div className="absolute bottom-20 right-10 text-6xl opacity-20 animate-float" style={{ animationDelay: '2s' }}>🌿</div>
+        <div className="absolute top-1/2 right-20 text-4xl opacity-20 animate-float" style={{ animationDelay: '4s' }}>🏖️</div>
+      </section>
+
+      {/* Main Content */}
+      <section className="py-16">
+        <div className="container mx-auto px-4 space-y-12">
+          {/* Stats Section */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="text-center space-y-2 p-6 bg-tourism-card rounded-2xl shadow-elegant">
+              <div className="text-3xl font-bold text-tourism-primary">{packages.length}</div>
+              <div className="text-tourism-text-muted">Packages Available</div>
+                </div>
+            <div className="text-center space-y-2 p-6 bg-tourism-card rounded-2xl shadow-elegant">
+              <div className="text-3xl font-bold text-tourism-primary">{categories.length}</div>
+              <div className="text-tourism-text-muted">Categories</div>
+              </div>
+            <div className="text-center space-y-2 p-6 bg-tourism-card rounded-2xl shadow-elegant">
+              <div className="text-3xl font-bold text-tourism-primary">4.8</div>
+              <div className="text-tourism-text-muted">Average Rating</div>
+          </div>
+            <div className="text-center space-y-2 p-6 bg-tourism-card rounded-2xl shadow-elegant">
+              <div className="text-3xl font-bold text-tourism-primary">1000+</div>
+              <div className="text-tourism-text-muted">Happy Travelers</div>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <PackageFilters
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            categories={categories}
+            activeFiltersCount={activeFiltersCount}
+            onClearFilters={handleClearFilters}
+          />
+
+          {/* Results Count */}
+          <div className="text-center">
+            <p className="text-tourism-text-muted">
+              Showing {filteredPackages.length} of {packages.length} packages
+            </p>
+          </div>
+
+          {/* Package Grid */}
+          <PackageGrid
+            packages={filteredPackages}
+          />
+        </div>
+      </section>
+    </div>
   );
 };
 

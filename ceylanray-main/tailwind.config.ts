@@ -53,14 +53,34 @@ export default {
     		},
     		fontFamily: {
     			sans: [
-    				'var(--font-instrument-sans)',
     				'system-ui',
-    				'sans-serif'
+    				'-apple-system',
+    				'BlinkMacSystemFont',
+    				'Segoe UI',
+    				'Roboto',
+    				'Helvetica Neue',
+    				'Arial',
+    				'Noto Sans',
+    				'sans-serif',
+    				'Apple Color Emoji',
+    				'Segoe UI Emoji',
+    				'Segoe UI Symbol',
+    				'Noto Color Emoji'
     			],
     			headers: [
-    				'var(--font-inter-tight)',
     				'system-ui',
-    				'sans-serif'
+    				'-apple-system',
+    				'BlinkMacSystemFont',
+    				'Segoe UI',
+    				'Roboto',
+    				'Helvetica Neue',
+    				'Arial',
+    				'Noto Sans',
+    				'sans-serif',
+    				'Apple Color Emoji',
+    				'Segoe UI Emoji',
+    				'Segoe UI Symbol',
+    				'Noto Color Emoji'
     			]
     		},
     		boxShadow: {

@@ -64,7 +64,7 @@ const Header = () => {
     };
 
     return (
-        <header className="w-full bg-white shadow-md flex items-center px-6 py-2">
+        <header className="w-full bg-white shadow-md flex items-center px-6 py-2 relative z-50">
             <Link href="/" className="flex items-center mr-8">
                 <img
                     loading="lazy"
@@ -101,7 +101,7 @@ const Header = () => {
                         Services <span className="text-gray-400">&#9662;</span>
                     </button>
                     {showServices && (
-                        <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+                        <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50">
                             {services.map((service) => (
                                 <Link
                                     key={service.slug}

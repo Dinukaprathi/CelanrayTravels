@@ -1,35 +1,107 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { CheckCircle2 } from 'lucide-react';
+import { LoadingButton } from '@/components/ui/loading-button';
+
+interface Hotel {
+  id: string;
+  name: string;
+  location?: string;
+  image?: string;
+  roomType?: string;
+}
 
 export default function BookHotelsPage() {
-  const [hotels, setHotels] = useState<{id: string, name: string}[]>([]);
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [availableRoomTypes, setAvailableRoomTypes] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     hotel_name: "",
+    hotel_id: "",
     checkIn: "",
     checkOut: "",
     roomType: "",
-    numGuests: "",
+    adults: "1",
+    children: "0",
     specialRequests: "",
   });
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+  const [loadingRoomTypes, setLoadingRoomTypes] = useState(false);
 
   useEffect(() => {
+    // Fetch hotels
     fetch("/api/hotels")
       .then((res) => res.json())
-      .then((data) => setHotels(data));
+      .then((data: Hotel[]) => {
+        console.log('Fetched hotels:', data); // Debug log
+        setHotels(data);
+      })
+      .catch((err) => {
+        console.error('Error fetching hotels:', err);
+        setError("Failed to load hotels");
+      });
   }, []);
+
+  // Fetch room types for selected hotel
+  const fetchRoomTypes = async (hotelId: string) => {
+    if (!hotelId) {
+      setAvailableRoomTypes([]);
+      return;
+    }
+
+    setLoadingRoomTypes(true);
+    try {
+      const response = await fetch(`/api/hotels/${hotelId}/room-types`);
+      const roomTypes = await response.json();
+      
+      if (Array.isArray(roomTypes)) {
+        setAvailableRoomTypes(roomTypes);
+        console.log('Fetched room types:', roomTypes); // Debug log
+      } else {
+        setAvailableRoomTypes([]);
+      }
+    } catch (error) {
+      console.error('Error fetching room types:', error);
+      setAvailableRoomTypes([]);
+    } finally {
+      setLoadingRoomTypes(false);
+    }
+  };
+
+  // Update available room types when hotel selection changes
+  useEffect(() => {
+    if (form.hotel_id) {
+      fetchRoomTypes(form.hotel_id);
+      // Reset room type selection when hotel changes
+      setForm(prev => ({ ...prev, roomType: "" }));
+    } else {
+      setAvailableRoomTypes([]);
+    }
+  }, [form.hotel_id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'hotel_name') {
+      // Find the hotel ID when hotel name is selected
+      const selectedHotel = hotels.find(hotel => hotel.name === value);
+      setForm(prev => ({ 
+        ...prev, 
+        [name]: value,
+        hotel_id: selectedHotel?.id || ""
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
+
+  // Calculate total guests
+  const totalGuests = parseInt(form.adults) + parseInt(form.children);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -37,11 +109,18 @@ export default function BookHotelsPage() {
     setError("");
     setSuccess(false);
     setShowAlert(false);
+    
+    // Create the numGuests string for the API
+    const numGuests = `${form.adults} adult${parseInt(form.adults) > 1 ? 's' : ''}${parseInt(form.children) > 0 ? ` and ${form.children} child${parseInt(form.children) > 1 ? 'ren' : ''}` : ''}`;
+    
     try {
       const res = await fetch("/api/hotel-booking", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          numGuests,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -52,10 +131,12 @@ export default function BookHotelsPage() {
           email: "",
           phone: "",
           hotel_name: "",
+          hotel_id: "",
           checkIn: "",
           checkOut: "",
           roomType: "",
-          numGuests: "",
+          adults: "1",
+          children: "0",
           specialRequests: "",
         });
         setTimeout(() => setShowAlert(false), 2000);
@@ -95,38 +176,101 @@ export default function BookHotelsPage() {
               <input name="email" type="email" placeholder="Your Email" value={form.email} onChange={handleChange} className="w-full px-4 py-3 border border-gray-100/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500" required />
             </div>
             <input name="phone" type="tel" placeholder="Phone Number" value={form.phone} onChange={handleChange} className="w-full px-4 py-3 border border-gray-100/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500" required />
-            <select name="hotel_name" value={form.hotel_name} onChange={handleChange} className="w-full px-4 py-3 border border-gray-100/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500" required>
-              <option value="">Select a hotel</option>
-              {hotels.map((hotel) => (
-                <option key={hotel.id} value={hotel.name}>{hotel.name}</option>
-              ))}
-            </select>
+            
+            {/* Hotel Selection */}
+            <div>
+              <label className="block text-sm text-neutral-600 mb-1">Select Hotel</label>
+              <select name="hotel_name" value={form.hotel_name} onChange={handleChange} className="w-full px-4 py-3 border border-gray-100/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500" required>
+                <option value="">Select a hotel</option>
+                {hotels.map((hotel) => (
+                  <option key={hotel.id} value={hotel.name}>{hotel.name}</option>
+                ))}
+              </select>
+              {hotels.length === 0 && (
+                <p className="text-sm text-gray-500 mt-1">No hotels available. Please add hotels through the admin panel.</p>
+              )}
+            </div>
+            
             <label className="block text-sm text-neutral-600 mb-1" htmlFor="checkIn">Check In</label>
             <input name="checkIn" id="checkIn" type="date" value={form.checkIn} onChange={handleChange} className="w-full px-4 py-3 border border-gray-100/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500" required />
             <label className="block text-sm text-neutral-600 mb-1 mt-4" htmlFor="checkOut">Check Out</label>
             <input name="checkOut" id="checkOut" type="date" value={form.checkOut} onChange={handleChange} className="w-full px-4 py-3 border border-gray-100/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500" required />
-            <input name="roomType" type="text" placeholder="Room Type" value={form.roomType} onChange={handleChange} className="w-full px-4 py-3 border border-gray-100/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500" required />
-            <select
-              name="numGuests"
-              value={form.numGuests}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select guests...</option>
-              <option value="1 adult">1 adult</option>
-              <option value="2 adults">2 adults</option>
-              <option value="2 adults and 1 child">2 adults and 1 child</option>
-              <option value="3 adults">3 adults</option>
-              <option value="4 adults">4 adults</option>
-              <option value="5 adults">5 adults</option>
-              <option value="2 adults and 2 children">2 adults and 2 children</option>
-              <option value="3 adults and 1 child">3 adults and 1 child</option>
-            </select>
+            
+            {/* Room Type Dropdown - Shows only hotel-specific room types */}
+            <div>
+              <label className="block text-sm text-neutral-600 mb-1">Room Type</label>
+              <select name="roomType" value={form.roomType} onChange={handleChange} className="w-full px-4 py-3 border border-gray-100/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500" required>
+                <option value="">
+                  {loadingRoomTypes ? "Loading room types..." : 
+                   form.hotel_name ? "Select Room Type" : "Please select a hotel first"}
+                </option>
+                {availableRoomTypes.map((roomType) => (
+                  <option key={roomType} value={roomType}>{roomType}</option>
+                ))}
+              </select>
+              {form.hotel_name && !loadingRoomTypes && availableRoomTypes.length === 0 && (
+                <p className="text-sm text-gray-500 mt-1">No room types available for this hotel. Please add room types through the admin panel.</p>
+              )}
+            </div>
+            
+            {/* Adults and Children Dropdowns with Total Count */}
+            <div className="space-y-4">
+              <label className="block text-sm text-neutral-600 mb-2">Number of Guests</label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm text-neutral-600 mb-1" htmlFor="adults">Adults</label>
+                  <select
+                    name="adults"
+                    id="adults"
+                    value={form.adults}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-100/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    required
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-neutral-600 mb-1" htmlFor="children">Children</label>
+                  <select
+                    name="children"
+                    id="children"
+                    value={form.children}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-100/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    required
+                  >
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-md text-center">
+                    <span className="text-sm text-neutral-600">Total: </span>
+                    <span className="font-semibold text-lg">{totalGuests}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <textarea name="specialRequests" placeholder="Special Requests" value={form.specialRequests} onChange={handleChange} className="w-full px-4 py-3 border border-gray-100/50 rounded-md h-32 focus:outline-none focus:ring-2 focus:ring-primary-500" />
-            <button type="submit" disabled={pending} className={`btn-primary px-8 py-3 rounded-md transition-all duration-200 w-full ${pending ? 'opacity-70 cursor-not-allowed' : ''}`}> 
-              {pending ? "Booking..." : "Book Now"}
-            </button>
+            <LoadingButton 
+              type="submit" 
+              loading={pending} 
+              loadingText="Booking..." 
+              className="btn-primary px-8 py-3 rounded-md transition-all duration-200 w-full"
+            >
+              Book Now
+            </LoadingButton>
             {showAlert && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
                 <div className="flex flex-col items-center gap-3 p-8 rounded-2xl shadow-2xl border-2 bg-[#ede9f7] border-[#b8a6e8]" style={{ animation: 'fadeIn 0.3s' }}>
