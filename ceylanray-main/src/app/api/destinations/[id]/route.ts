@@ -3,12 +3,13 @@ import { query } from "../../../../lib/db";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const result = await query(
       'SELECT * FROM "Destination" WHERE "destination_id" = $1',
-      [params.id]
+      [id]
     );
 
     if (result.rows.length === 0) {
