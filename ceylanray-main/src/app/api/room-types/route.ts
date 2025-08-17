@@ -1,28 +1,30 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// Use a single PrismaClient instance
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export async function GET() {
   try {
-    // Get all hotels with their room types
     const hotels = await prisma.hotel.findMany({
-      select: {
-        roomTypes: true,
-      },
       where: {
         roomTypes: {
           isEmpty: false,
         },
       },
+      select: {
+        id: true,
+        name: true,
+        roomTypes: true,
+      },
     });
-
-    // Extract and flatten all unique room types from all hotels
-    const allRoomTypes = hotels
-      .flatMap(hotel => hotel.roomTypes || [])
-      .filter((type, index, array) => array.indexOf(type) === index); // Remove duplicates
-
-    return NextResponse.json(allRoomTypes);
+    return NextResponse.json(hotels);
   } catch (error) {
     console.error('Error fetching room types:', error);
     return NextResponse.json(

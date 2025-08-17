@@ -1,16 +1,19 @@
-import { NextResponse } from "next/server";
-import { query } from "../../../lib/db";
+import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+// Use a single PrismaClient instance
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export async function GET() {
   try {
-    const result = await query(
-      'SELECT * FROM "Destination" ORDER BY "createdAt" DESC'
-    );
-    
-    console.log('Fetched destinations from database:', result.rows); // Debug log
-    console.log('Number of destinations found:', result.rows.length); // Debug log
-    
-    return NextResponse.json(result.rows);
+    const destinations = await prisma.destination.findMany();
+    return NextResponse.json(destinations);
   } catch (error) {
     console.error('Error fetching destinations:', error);
     return NextResponse.json(
