@@ -3,11 +3,19 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// Use a single PrismaClient instance
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export async function GET() {
-  const packagesWithoutOffers = await prisma.packageWithoutOffers.findMany();
-  const packagesWithOffers = await prisma.packageWithOffers.findMany();
+  try {
+    const packagesWithoutOffers = await prisma.packageWithoutOffers.findMany();
+    const packagesWithOffers = await prisma.packageWithOffers.findMany();
 
   // Normalize price and imageURL to image
   const normalizedWithoutOffers = packagesWithoutOffers.map(pkg => ({
@@ -50,8 +58,15 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({
-    packagesWithoutOffers: normalizedWithoutOffers,
-    packagesWithOffers: normalizedWithOffers,
-  });
+    return NextResponse.json({
+      packagesWithoutOffers: normalizedWithoutOffers,
+      packagesWithOffers: normalizedWithOffers,
+    });
+  } catch (error) {
+    console.error('Error fetching packages:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch packages' },
+      { status: 500 }
+    );
+  }
 }
