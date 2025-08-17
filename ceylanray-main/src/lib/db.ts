@@ -19,19 +19,5 @@ export async function query(text: string, params?: any[]) {
 
 export async function getClient() {
   const client = await pool.connect();
-  const query = client.query.bind(client);
-  const release = client.release.bind(client);
-  
-  // Monkey patch the client to log queries
-  client.query = (...args: any[]) => {
-    console.log('QUERY:', args[0]);
-    return query.apply(client, args);
-  };
-  
-  client.release = () => {
-    console.log('Client released');
-    return release();
-  };
-  
   return client;
 }
