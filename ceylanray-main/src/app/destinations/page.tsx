@@ -2,7 +2,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 
-async function getDestinations() {
+interface Destination {
+  id: string;
+  destination_id: string;
+  destination: string;
+  destination_name: string;
+  description: string;
+  image_url?: string;
+}
+
+async function getDestinations(): Promise<Destination[]> {
   try {
     // Fetch destinations from our local API route
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/destinations`, {
@@ -13,7 +22,7 @@ async function getDestinations() {
       throw new Error('Failed to fetch destinations');
     }
     
-    const destinations = await response.json();
+    const destinations: Destination[] = await response.json();
     console.log('Destinations fetched from database:', destinations); // Debug log
     console.log('Number of destinations:', destinations.length); // Debug log
     
@@ -42,7 +51,7 @@ export default async function DestinationsPage() {
               No destinations found. Please add some destinations through the admin panel.
             </div>
           ) : (
-            destinations.map((dest) => (
+            destinations.map((dest: Destination) => (
               <div
                 key={dest.destination_id}
                 className="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col border border-gray-100 hover:shadow-xl transition-shadow duration-200"
