@@ -12,7 +12,7 @@ export async function GET() {
       },
       where: {
         roomTypes: {
-          not: [],
+          isEmpty: false,
         },
       },
     });
