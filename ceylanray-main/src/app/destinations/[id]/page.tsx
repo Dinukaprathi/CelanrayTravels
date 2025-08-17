@@ -22,7 +22,7 @@ async function getDestination(id: string) {
   }
 }
 
-export default async function DestinationDetailPage({ params }: { params: { id: string } }) {
+export default async function DestinationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const destination = await getDestination(id);
 

@@ -25,7 +25,7 @@ async function getPackageById(id: string): Promise<TravelPackage | null> {
   return allPackages.find((pkg: TravelPackage) => pkg.id === id) || null;
 }
 
-export default async function PackageDetailPage({ params }: { params: { id: string } }) {
+export default async function PackageDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const pkg = await getPackageById(resolvedParams.id);
   if (!pkg) return notFound();
